@@ -126,7 +126,7 @@ class _OwnerScreenState extends State<OwnerScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.green.shade50, Colors.emerald.shade100],
+              colors: [Colors.green.shade50, Colors.green.shade100],
             ),
           ),
           child: SafeArea(
