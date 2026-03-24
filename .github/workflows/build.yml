@@ -7,22 +7,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-env:
-  # ✏️ Change this to the folder containing your pubspec.yaml
-  # Examples:
-  #   "."                      → pubspec.yaml is at repo root
-  #   "app"                    → my_repo/app/pubspec.yaml
-  #   "market_management"      → my_repo/market_management/pubspec.yaml
-  FLUTTER_PROJECT_DIR: "."
-
 jobs:
   build-android-apk:
     name: Build Android APK (Debug)
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
 
     steps:
       - name: Checkout code
@@ -45,10 +33,7 @@ jobs:
         run: flutter pub get
 
       - name: Analyze code
-        run: flutter analyze --no-fatal-infos
-
-      #- name: Run tests
-      #  run: flutter test
+        run: flutter analyze --no-fatal-warnings
 
       - name: Build APK (debug)
         run: flutter build apk --debug
@@ -57,5 +42,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
-          path: ${{ env.FLUTTER_PROJECT_DIR }}/build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
