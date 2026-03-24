@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import 'auth_screen.dart';
 import 'assistant_screen.dart';
 import 'owner_screen.dart';
 
@@ -7,6 +9,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -23,6 +27,28 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Sign out button top right
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await authService.signOut();
+                        if (context.mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const AuthScreen()),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.black54),
+                      label: const Text(
+                        'Sign Out',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   const Text(
                     'Market Management System',
                     style: TextStyle(
@@ -34,10 +60,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Text(
                     'Select your role to continue',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                   const SizedBox(height: 48),
                   _buildRoleCard(
@@ -46,14 +69,11 @@ class HomeScreen extends StatelessWidget {
                     description: 'Add purchased items and their prices',
                     icon: Icons.shopping_basket,
                     color: Colors.blue,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AssistantScreen(),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AssistantScreen()),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildRoleCard(
@@ -62,14 +82,10 @@ class HomeScreen extends StatelessWidget {
                     description: 'Review items, make payments, and view history',
                     icon: Icons.person,
                     color: Colors.green,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const OwnerScreen(),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OwnerScreen()),
+                    ),
                   ),
                 ],
               ),
@@ -108,28 +124,19 @@ class HomeScreen extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  size: 40,
-                  color: color,
-                ),
+                child: Icon(icon, size: 40, color: color),
               ),
               const SizedBox(height: 16),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 description,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.black54),
               ),
             ],
           ),

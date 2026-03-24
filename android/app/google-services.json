@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "594961400985",
+    "firebase_url": "https://market-management-f703d-default-rtdb.firebaseio.com",
+    "project_id": "market-management-f703d",
+    "storage_bucket": "market-management-f703d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594961400985:android:b363b2503c0213909f2408",
+        "android_client_info": {
+          "package_name": "com.example.market_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9Rh-8y5OPa46mVXd2ZAt05wcAm3Nkf8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

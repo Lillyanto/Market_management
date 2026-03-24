@@ -28,6 +28,7 @@ class Transaction {
       'paidAmount': paidAmount,
       'balance': balance,
       'previousBalance': previousBalance,
+      // 'createdAt' is added by StorageService via FieldValue.serverTimestamp()
     };
   }
 
@@ -36,7 +37,7 @@ class Transaction {
       id: json['id'],
       date: json['date'],
       items: (json['items'] as List)
-          .map((item) => Item.fromJson(item))
+          .map((item) => Item.fromJson(item as Map<String, dynamic>))
           .toList(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
       paidAmount: (json['paidAmount'] as num).toDouble(),

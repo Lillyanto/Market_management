@@ -18,20 +18,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   List<Item> _items = [];
   double _previousBalance = 0.0;
-  bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    final data = await _storageService.loadData();
-    setState(() {
-      _previousBalance = data.previousBalance;
-      _items = data.currentItems;
-      _isLoading = false;
+    // Load existing items from Firestore on open
+    _storageService.streamData().first.then((data) {
+      if (mounted) {
+        setState(() {
+          _previousBalance = data.previousBalance;
+          _items = List.from(data.currentItems);
+        });
+      }
     });
   }
 
@@ -42,30 +41,17 @@ class _AssistantScreenState extends State<AssistantScreen> {
         name: _nameController.text.trim(),
         price: double.parse(_priceController.text),
       );
-
-      setState(() {
-        _items.add(newItem);
-      });
-
+      setState(() => _items.add(newItem));
       _nameController.clear();
       _priceController.clear();
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Item added successfully')),
+        const SnackBar(content: Text('Item added')),
       );
-
-      // Focus back to name field
-      FocusScope.of(context).requestFocus(FocusNode());
     }
   }
 
   void _removeItem(String id) {
-    setState(() {
-      _items.removeWhere((item) => item.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Item removed')),
-    );
+    setState(() => _items.removeWhere((item) => item.id == id));
   }
 
   Future<void> _saveItems() async {
@@ -76,16 +62,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
       return;
     }
 
-    final data = await _storageService.loadData();
-    final updatedData = StoredData(
-      previousBalance: data.previousBalance,
-      currentItems: _items,
-      transactions: data.transactions,
-    );
-
-    await _storageService.saveData(updatedData);
-
+    setState(() => _isSaving = true);
+    await _storageService.saveCurrentItems(_items);
     setState(() {
+      _isSaving = false;
       _items = [];
     });
 
@@ -99,18 +79,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
     }
   }
 
-  double get _totalAmount =>
-      _items.fold(0.0, (sum, item) => sum + item.price);
+  double get _totalAmount => _items.fold(0.0, (sum, item) => sum + item.price);
   double get _grandTotal => _totalAmount + _previousBalance;
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -123,7 +96,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -136,9 +108,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       child: Text(
                         'Assistant - Add Items',
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 24, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -146,14 +116,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ],
                 ),
               ),
-
-              // Content
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      // Previous Balance Card
                       if (_previousBalance > 0)
                         Card(
                           color: Colors.amber.shade50,
@@ -162,28 +129,22 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Previous Balance:',
-                                  style: TextStyle(
-                                    color: Colors.amber,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                const Text('Previous Balance:',
+                                    style: TextStyle(
+                                        color: Colors.amber,
+                                        fontWeight: FontWeight.bold)),
                                 Text(
                                   '\$${_previousBalance.toStringAsFixed(2)}',
                                   style: const TextStyle(
-                                    fontSize: 20,
-                                    color: Colors.amber,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                      fontSize: 20,
+                                      color: Colors.amber,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       const SizedBox(height: 16),
-
-                      // Add Item Card
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -192,13 +153,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Add New Item',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                const Text('Add New Item',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 16),
                                 TextFormField(
                                   controller: _nameController,
@@ -207,15 +165,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     hintText: 'e.g., Rice',
                                     border: OutlineInputBorder(),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter item name';
-                                    }
-                                    return null;
-                                  },
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(context).nextFocus();
-                                  },
+                                  validator: (value) =>
+                                      (value == null || value.trim().isEmpty)
+                                          ? 'Please enter item name'
+                                          : null,
+                                  onFieldSubmitted: (_) =>
+                                      FocusScope.of(context).nextFocus(),
                                 ),
                                 const SizedBox(height: 16),
                                 TextFormField(
@@ -225,9 +180,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     hintText: '0.00',
                                     border: OutlineInputBorder(),
                                   ),
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter price';
@@ -248,8 +203,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     icon: const Icon(Icons.add),
                                     label: const Text('Add Item'),
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.all(16),
-                                    ),
+                                        padding: const EdgeInsets.all(16)),
                                   ),
                                 ),
                               ],
@@ -258,21 +212,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      // Items List Card
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Items List',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              const Text('Items List',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold)),
                               const SizedBox(height: 16),
                               if (_items.isEmpty)
                                 const Center(
@@ -289,11 +238,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                 Column(
                                   children: [
                                     ..._items.map((item) => Container(
-                                          margin: const EdgeInsets.only(bottom: 8),
+                                          margin:
+                                              const EdgeInsets.only(bottom: 8),
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Row(
                                             mainAxisAlignment:
@@ -303,8 +254,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                               Text(
                                                 '\$${item.price.toStringAsFixed(2)}',
                                                 style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               IconButton(
                                                 icon: const Icon(Icons.delete,
@@ -320,12 +271,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text('Current Items Total:',
-                                            style: TextStyle(fontSize: 16)),
+                                        const Text('Current Items Total:'),
                                         Text(
-                                          '\$${_totalAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
+                                            '\$${_totalAmount.toStringAsFixed(2)}'),
                                       ],
                                     ),
                                     if (_previousBalance > 0) ...[
@@ -334,17 +282,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          const Text(
-                                            'Previous Balance:',
-                                            style: TextStyle(
-                                              color: Colors.amber,
-                                            ),
-                                          ),
+                                          const Text('Previous Balance:',
+                                              style: TextStyle(
+                                                  color: Colors.amber)),
                                           Text(
                                             '\$${_previousBalance.toStringAsFixed(2)}',
                                             style: const TextStyle(
-                                              color: Colors.amber,
-                                            ),
+                                                color: Colors.amber),
                                           ),
                                         ],
                                       ),
@@ -353,20 +297,16 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          const Text(
-                                            'Grand Total:',
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                          const Text('Grand Total:',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold)),
                                           Text(
                                             '\$${_grandTotal.toStringAsFixed(2)}',
                                             style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue,
-                                            ),
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.blue),
                                           ),
                                         ],
                                       ),
@@ -375,8 +315,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton.icon(
-                                        onPressed: _saveItems,
-                                        icon: const Icon(Icons.save),
+                                        onPressed:
+                                            _isSaving ? null : _saveItems,
+                                        icon: _isSaving
+                                            ? const SizedBox(
+                                                height: 18,
+                                                width: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white),
+                                              )
+                                            : const Icon(Icons.save),
                                         label: const Text('Save & Send to Owner'),
                                         style: ElevatedButton.styleFrom(
                                           padding: const EdgeInsets.all(16),
