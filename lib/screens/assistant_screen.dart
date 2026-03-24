@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/item.dart';
-import '../models/stored_data.dart';
 import '../services/storage_service.dart';
 
 class AssistantScreen extends StatefulWidget {
@@ -23,7 +22,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   void initState() {
     super.initState();
-    // Load existing items from Firestore on open
     _storageService.streamData().first.then((data) {
       if (mounted) {
         setState(() {
@@ -61,14 +59,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
       );
       return;
     }
-
     setState(() => _isSaving = true);
     await _storageService.saveCurrentItems(_items);
     setState(() {
       _isSaving = false;
       _items = [];
     });
-
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,8 +103,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     const Expanded(
                       child: Text(
                         'Assistant - Add Items',
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -133,13 +128,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     style: TextStyle(
                                         color: Colors.amber,
                                         fontWeight: FontWeight.bold)),
-                                Text(
-                                  '\$${_previousBalance.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      color: Colors.amber,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                Text('\$${_previousBalance.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        color: Colors.amber,
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -155,8 +148,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                               children: [
                                 const Text('Add New Item',
                                     style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold)),
+                                        fontSize: 20, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 16),
                                 TextFormField(
                                   controller: _nameController,
@@ -180,17 +172,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     hintText: '0.00',
                                     border: OutlineInputBorder(),
                                   ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter price';
-                                    }
+                                    if (value == null || value.isEmpty) return 'Please enter price';
                                     final price = double.tryParse(value);
-                                    if (price == null || price <= 0) {
-                                      return 'Please enter a valid price';
-                                    }
+                                    if (price == null || price <= 0) return 'Please enter a valid price';
                                     return null;
                                   },
                                   onFieldSubmitted: (_) => _addItem(),
@@ -202,8 +188,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     onPressed: _addItem,
                                     icon: const Icon(Icons.add),
                                     label: const Text('Add Item'),
-                                    style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.all(16)),
+                                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
                                   ),
                                 ),
                               ],
@@ -219,9 +204,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text('Items List',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold)),
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 16),
                               if (_items.isEmpty)
                                 const Center(
@@ -238,76 +221,55 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                 Column(
                                   children: [
                                     ..._items.map((item) => Container(
-                                          margin:
-                                              const EdgeInsets.only(bottom: 8),
+                                          margin: const EdgeInsets.only(bottom: 8),
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.grey.shade100,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
                                               Expanded(child: Text(item.name)),
-                                              Text(
-                                                '\$${item.price.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
+                                              Text('\$${item.price.toStringAsFixed(2)}',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold)),
                                               IconButton(
-                                                icon: const Icon(Icons.delete,
-                                                    color: Colors.red),
-                                                onPressed: () =>
-                                                    _removeItem(item.id),
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                onPressed: () => _removeItem(item.id),
                                               ),
                                             ],
                                           ),
                                         )),
                                     const Divider(height: 32),
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         const Text('Current Items Total:'),
-                                        Text(
-                                            '\$${_totalAmount.toStringAsFixed(2)}'),
+                                        Text('\$${_totalAmount.toStringAsFixed(2)}'),
                                       ],
                                     ),
                                     if (_previousBalance > 0) ...[
                                       const SizedBox(height: 8),
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           const Text('Previous Balance:',
-                                              style: TextStyle(
-                                                  color: Colors.amber)),
-                                          Text(
-                                            '\$${_previousBalance.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                                color: Colors.amber),
-                                          ),
+                                              style: TextStyle(color: Colors.amber)),
+                                          Text('\$${_previousBalance.toStringAsFixed(2)}',
+                                              style: const TextStyle(color: Colors.amber)),
                                         ],
                                       ),
                                       const Divider(height: 24),
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           const Text('Grand Total:',
-                                              style: TextStyle(
+                                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                          Text('\$${_grandTotal.toStringAsFixed(2)}',
+                                              style: const TextStyle(
                                                   fontSize: 20,
-                                                  fontWeight: FontWeight.bold)),
-                                          Text(
-                                            '\$${_grandTotal.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.blue),
-                                          ),
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.blue)),
                                         ],
                                       ),
                                     ],
@@ -315,16 +277,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton.icon(
-                                        onPressed:
-                                            _isSaving ? null : _saveItems,
+                                        onPressed: _isSaving ? null : _saveItems,
                                         icon: _isSaving
                                             ? const SizedBox(
                                                 height: 18,
                                                 width: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: Colors.white),
+                                                child: CircularProgressIndicator(
+                                                    strokeWidth: 2, color: Colors.white),
                                               )
                                             : const Icon(Icons.save),
                                         label: const Text('Save & Send to Owner'),

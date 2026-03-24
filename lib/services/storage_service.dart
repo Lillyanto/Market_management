@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/item.dart';
 import '../models/stored_data.dart';
-import '../models/transaction.dart';
+import '../models/transaction.dart' as app_models;
 
 class StorageService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Single shop document — all phones share this
   static const String _shopDoc = 'shop';
   static const String _collection = 'marketData';
   static const String _txCollection = 'transactions';
@@ -17,15 +16,10 @@ class StorageService {
   CollectionReference get _txRef =>
       _shopRef.collection(_txCollection);
 
-  // ── Real-time stream so all phones update instantly ──────────────────────
   Stream<StoredData> streamData() {
     return _shopRef.snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) {
-        return StoredData(
-          previousBalance: 0.0,
-          currentItems: [],
-          transactions: [],
-        );
+        return StoredData(previousBalance: 0.0, currentItems: [], transactions: []);
       }
       final data = snap.data() as Map<String, dynamic>;
       return StoredData(
@@ -35,22 +29,21 @@ class StorageService {
                 .map((i) => Item.fromJson(i as Map<String, dynamic>))
                 .toList()
             : [],
-        transactions: [], // loaded separately
+        transactions: [],
       );
     });
   }
 
-  Stream<List<Transaction>> streamTransactions() {
+  Stream<List<app_models.Transaction>> streamTransactions() {
     return _txRef
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs
-            .map((doc) =>
-                Transaction.fromJson(doc.data() as Map<String, dynamic>))
+            .map((doc) => app_models.Transaction.fromJson(
+                doc.data() as Map<String, dynamic>))
             .toList());
   }
 
-  // ── One-time load (used for payment processing) ──────────────────────────
   Future<StoredData> loadData() async {
     final snap = await _shopRef.get();
     if (!snap.exists || snap.data() == null) {
@@ -59,9 +52,9 @@ class StorageService {
     final data = snap.data() as Map<String, dynamic>;
     final txSnap = await _txRef.orderBy('createdAt', descending: true).get();
     final transactions = txSnap.docs
-        .map((doc) => Transaction.fromJson(doc.data() as Map<String, dynamic>))
+        .map((doc) => app_models.Transaction.fromJson(
+            doc.data() as Map<String, dynamic>))
         .toList();
-
     return StoredData(
       previousBalance: (data['previousBalance'] as num?)?.toDouble() ?? 0.0,
       currentItems: data['currentItems'] != null
@@ -73,7 +66,6 @@ class StorageService {
     );
   }
 
-  // ── Save current items (assistant saves) ─────────────────────────────────
   Future<void> saveCurrentItems(List<Item> items) async {
     await _shopRef.set(
       {'currentItems': items.map((i) => i.toJson()).toList()},
@@ -81,29 +73,20 @@ class StorageService {
     );
   }
 
-  // ── Process payment (owner pays) ─────────────────────────────────────────
   Future<void> processPayment({
-    required Transaction transaction,
+    required app_models.Transaction transaction,
     required double newBalance,
   }) async {
     final batch = _db.batch();
-
-    // Update shop doc
     batch.set(
       _shopRef,
-      {
-        'previousBalance': newBalance,
-        'currentItems': [],
-      },
+      {'previousBalance': newBalance, 'currentItems': []},
       SetOptions(merge: true),
     );
-
-    // Add transaction record
     final txDoc = _txRef.doc(transaction.id);
     final txData = transaction.toJson();
     txData['createdAt'] = FieldValue.serverTimestamp();
     batch.set(txDoc, txData);
-
     await batch.commit();
   }
 }
